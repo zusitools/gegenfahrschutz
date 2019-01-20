@@ -521,8 +521,8 @@ int main(int argc, char** argv) {
         }
 
         neue_register.emplace_back(idx_norm, idx_gegen_plus_1 - 1);
-        geaenderte_module.insert(element_seq.elemente().at(idx_norm).st3);
-        geaenderte_module.insert(element_seq.elemente().at(idx_gegen_plus_1 - 1).st3);
+        geaenderte_module.insert(get_strecke(seq_fahrstr_norm.fahrstrasse->FahrstrStart->Datei));
+        geaenderte_module.insert(get_strecke(seq_fahrstr_gegen.fahrstrasse->FahrstrStart->Datei));
         freie_elemente_laufrichtung[idx_norm] = false;
         freie_elemente_gegenrichtung[idx_gegen_plus_1 - 1] = false;
       }
