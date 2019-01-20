@@ -320,12 +320,11 @@ int main(int argc, char** argv) {
     element_seq_elemente.clear();
 
     ElementRichtungRef cur_element { start_st3, start_element, start_normrichtung };
-    size_t idx = 0;
-
-    while (cur_element && (idx <= 9999)) {
+    for (size_t idx = 0; idx <= 9999; ++idx) {
       element_seq_elemente.emplace_back(cur_element);
 
       if (cur_element.element == ziel_element) {
+        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung erfolgreich\n";
         return true;
       }
 
@@ -338,18 +337,26 @@ int main(int argc, char** argv) {
         // Weiche oder Streckenende
         break;
       }
-      if (!cur_element.nachfolger_selbes_modul().empty()) {
-        const int32_t anschluss_mask = (cur_element.normrichtung ? 0x1 : 0x100);
-        cur_element = { cur_element.st3, get_element_by_nr(*cur_element.st3, cur_element.nachfolger_selbes_modul()[0].Nr), (cur_element.element->Anschluss & anschluss_mask) == 0 };
-      } else {
-        assert(!cur_element.nachfolger_anderes_modul().empty());
-        const auto& st3 = get_strecke(cur_element.nachfolger_anderes_modul()[0].Datei);
-        if (!st3) {
-          break;
+      const auto& next_element = [&]() {
+        if (!cur_element.nachfolger_selbes_modul().empty()) {
+          const int32_t anschluss_mask = (cur_element.normrichtung ? 0x1 : 0x100);
+          return ElementRichtungRef { cur_element.st3, get_element_by_nr(*cur_element.st3, cur_element.nachfolger_selbes_modul()[0].Nr), (cur_element.element->Anschluss & anschluss_mask) == 0 };
+        } else {
+          assert(!cur_element.nachfolger_anderes_modul().empty());
+          const auto& st3 = get_strecke(cur_element.nachfolger_anderes_modul()[0].Datei);
+          if (!st3) {
+            return ElementRichtungRef {};
+          }
+          return get_element_by_ref_nr(*st3, cur_element.nachfolger_anderes_modul()[0].Nr).gegenrichtung(); // Referenzpunkt zeigt in Richtung Modulgrenze
         }
-        cur_element = get_element_by_ref_nr(*st3, cur_element.nachfolger_anderes_modul()[0].Nr).gegenrichtung(); // Referenzpunkt zeigt in Richtung Modulgrenze
+      }();
+      if (!next_element) {
+        break;
       }
+      cur_element = next_element;
     }
+    assert(cur_element);
+    boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << "\n";
 
     return false;
   };
