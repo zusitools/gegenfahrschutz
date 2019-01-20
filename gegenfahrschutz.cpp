@@ -586,7 +586,6 @@ int main(int argc, char** argv) {
 
     if (el1.st3 == el2.st3) {
       boost::nowide::cout << " - Neues manuelles Register " << register_el1 << " an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << " und " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << "\n";
-      strecken_aenderungen[el1.st3].neue_refpunkte.push_back(NeuerRegisterRefpunkt { refpunkt_el1, el1.element->Nr, el1.normrichtung, register_el1 });
       get_pair_element(strecken_aenderungen[el1.st3].neue_register[el1.element->Nr],  el1.normrichtung) = NeuesRegister { register_el1, 0, "" };
       get_pair_element(strecken_aenderungen[el1.st3].neue_register[el2.element->Nr], !el2.normrichtung) = NeuesRegister { register_el2, 0, "" };
     } else {
