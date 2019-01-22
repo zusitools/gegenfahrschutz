@@ -509,6 +509,13 @@ int main(int argc, char** argv) {
   std::vector<std::pair<size_t, size_t>> neue_register;
   std::unordered_set<const Strecke*> geaenderte_module;
 
+  std::sort(fahrstr_normrichtung.begin(), fahrstr_normrichtung.end(), [](const auto& fs1, const auto& fs2) {
+      return fs1.min_element_seq_idx > fs2.min_element_seq_idx;
+      });
+  std::sort(fahrstr_gegenrichtung.begin(), fahrstr_gegenrichtung.end(), [](const auto& fs1, const auto& fs2) {
+      return fs1.max_element_seq_idx < fs2.max_element_seq_idx;
+      });
+
   for (const auto& seq_fahrstr_norm : fahrstr_normrichtung) {
     for (const auto& seq_fahrstr_gegen : fahrstr_gegenrichtung) {
       if ((seq_fahrstr_gegen.max_element_seq_idx >= seq_fahrstr_norm.min_element_seq_idx) && !gegeneinander_verriegelt(seq_fahrstr_norm, seq_fahrstr_gegen, neue_register)) {
@@ -665,7 +672,7 @@ int main(int argc, char** argv) {
         refpunkt_node->append_attribute(doc.allocate_attribute("StrNorm", "1"));
       }
       refpunkt_node->append_attribute(doc.allocate_attribute("RefTyp", "2"));
-      refpunkt_node->append_attribute(doc.allocate_attribute("Info", doc.allocate_string((std::string("Register Nr. ") + std::to_string(neuer_refpunkt.register_nr)).c_str())));
+      refpunkt_node->append_attribute(doc.allocate_attribute("Info", doc.allocate_string((std::string("Register-Nr. ") + std::to_string(neuer_refpunkt.register_nr)).c_str())));
     }
 
     std::string out_string;
