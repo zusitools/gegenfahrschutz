@@ -191,8 +191,8 @@ namespace rapidxml
                 else
                 {
                     // Print all children with full indenting
-                    if (!(flags & print_no_indenting))
-                        *out = Ch('\n'), ++out;
+                    *out = Ch('\r'), ++out;
+                    *out = Ch('\n'), ++out;
                     out = print_children(out, node, flags, indent + 1);
                     if (!(flags & print_no_indenting))
                         out = fill_chars(out, indent, Ch('\t'));
@@ -287,6 +287,16 @@ namespace rapidxml
             return out;
         }
 
+        // Print UTF-8 BOM
+        template<class OutIt, class Ch>
+        inline OutIt print_bom(OutIt out)
+        {
+            *out = Ch('\xef'), ++out;
+            *out = Ch('\xbb'), ++out;
+            *out = Ch('\xbf'), ++out;
+            return out;
+        }
+
         // Print node
         template<class OutIt, class Ch>
         inline OutIt print_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
@@ -297,6 +307,7 @@ namespace rapidxml
 
             // Document
             case node_document:
+                out = print_bom<OutIt, Ch>(out);
                 out = print_children(out, node, flags, indent);
                 break;
 
@@ -341,9 +352,11 @@ namespace rapidxml
                 break;
             }
             
-            // If indenting not disabled, add line break after node
-            if (!(flags & print_no_indenting))
-                *out = Ch('\n'), ++out;
+            // Add line break after node (but not at the end of the document)
+            if (node->type() != node_document) {
+              *out = Ch('\r'), ++out;
+              *out = Ch('\n'), ++out;
+            }
 
             // Return modified iterator
             return out;

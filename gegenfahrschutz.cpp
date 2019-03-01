@@ -21,6 +21,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <utility>
+#include <string_view>
 #include <vector>
 
 #ifdef WIN32
@@ -605,12 +606,12 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  boost::nowide::cout << "Die folgenden neuen Dateien wurden geschrieben:\n";
+  boost::nowide::cout << "Die folgenden Dateien wurden neu geschrieben:\n";
   for (const auto& [strecke, aenderung] : strecken_aenderungen) {
     const auto& dateiname = modul_info.at(strecke).pfad_os;
     zusixml::FileReader reader(dateiname);
     rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_non_destructive>(const_cast<char*>(reader.data()));
+    doc.parse<rapidxml::parse_non_destructive | rapidxml::parse_comment_nodes | rapidxml::parse_declaration_node>(const_cast<char*>(reader.data()));
 
     auto* const zusi_node = doc.first_node("Zusi");
     auto* const strecke_node = zusi_node->first_node("Strecke");
@@ -642,11 +643,20 @@ int main(int argc, char** argv) {
           str_element_node->append_node(richtungs_info_node);
         }
         if (neues_register.register_nr != 0) {
-          richtungs_info_node->append_attribute(doc.allocate_attribute("Reg", doc.allocate_string(std::to_string(neues_register.register_nr).c_str())));
+          // Zusi: <InfoGegenRichtung vMax="single" km="single" pos="bool" Reg="integer"
+          auto* insert_before = richtungs_info_node->first_attribute();
+          while (insert_before) {
+            const auto& attr_name = std::string_view(insert_before->name(), insert_before->name_size());
+            if ((attr_name != "vMax") && (attr_name != "km") && (attr_name != "pos")) {
+              break;
+            }
+            insert_before = insert_before->next_attribute();
+          }
+          richtungs_info_node->insert_attribute(insert_before, doc.allocate_attribute("Reg", doc.allocate_string(std::to_string(neues_register.register_nr).c_str())));
         }
         if (neues_register.verkn_refpunkt_nr != 0) {
           auto* ereignis_node = doc.allocate_node(rapidxml::node_element, "Ereignis");
-          richtungs_info_node->append_node(ereignis_node);
+          richtungs_info_node->insert_node(richtungs_info_node->first_node(), ereignis_node);
           ereignis_node->append_attribute(doc.allocate_attribute("Er", "34"));
           ereignis_node->append_attribute(doc.allocate_attribute("Beschr", neues_register.verkn_refpunkt_modul.c_str()));
           ereignis_node->append_attribute(doc.allocate_attribute("Wert", doc.allocate_string(std::to_string(neues_register.verkn_refpunkt_nr).c_str())));
@@ -655,9 +665,14 @@ int main(int argc, char** argv) {
     }
 
     // Neue Referenzelemente
+    auto* str_element_node = strecke_node->first_node("StrElement");
     for (const auto& neuer_refpunkt : aenderung.neue_refpunkte) {
       auto* refpunkt_node = doc.allocate_node(rapidxml::node_element, "ReferenzElemente");
-      strecke_node->append_node(refpunkt_node);
+      if (str_element_node != nullptr) {
+        strecke_node->insert_node(str_element_node, refpunkt_node);
+      } else {
+        strecke_node->append_node(refpunkt_node);
+      }
       refpunkt_node->append_attribute(doc.allocate_attribute("ReferenzNr", doc.allocate_string(std::to_string(neuer_refpunkt.nr).c_str())));
       refpunkt_node->append_attribute(doc.allocate_attribute("StrElement", doc.allocate_string(std::to_string(neuer_refpunkt.element_nr).c_str())));
       if (neuer_refpunkt.element_normrichtung) {
@@ -669,13 +684,13 @@ int main(int argc, char** argv) {
 
     std::string out_string;
     rapidxml::print(std::back_inserter(out_string), doc, rapidxml::print_no_indenting);
+    {
+      std::ofstream o(dateiname, std::ios::binary);
+      o << out_string;
+    }
 
-    std::string dateiname_neu = std::string(dateiname) + ".new.st3";
-    std::ofstream o(dateiname_neu, std::ios::binary);
-    o << out_string;
-    boost::nowide::cout << " - " << dateiname_neu << "\n";
+    boost::nowide::cout << " - " << dateiname << "\n";
   }
-  boost::nowide::cout << "Sie muessen mit dem 3D-Editor geoeffnet und unter dem Namen der Ursprungsdatei gespeichert werden.\n";
 
   boost::nowide::cout << "In den folgenden Modulen müssen die Fahrstrassen mit fahrstr_gen neu erstellt werden:\n";
   for (const auto& strecke : geaenderte_module) {
