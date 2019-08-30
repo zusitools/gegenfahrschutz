@@ -32,19 +32,6 @@ namespace po = boost::program_options;
 
 FileCache file_cache;
 
-std::string osPfadZuZusiPfad(std::string_view osPfad)
-{
-  const auto os_pfad = boost::filesystem::path(osPfad.begin(), osPfad.end());
-  boost::system::error_code ec;
-  auto result_pfad = boost::filesystem::relative(os_pfad, zusixml::getZusiDatenpfad(), ec);
-  if (ec) {
-    result_pfad = boost::filesystem::absolute(os_pfad);
-  }
-  auto result = result_pfad.string();
-  std::replace(result.begin(), result.end(), zusixml::osSep, zusixml::zusiSep);
-  return result;
-}
-
 const ReferenzElement* get_refpunkt_by_nr(const Strecke& strecke, int nr) {
   if (nr < 0 || nr >= strecke.children_ReferenzElemente.size()) {
     return nullptr;
@@ -139,27 +126,16 @@ struct ModulInfo {
 
 std::unordered_map<const Strecke*, ModulInfo> modul_info;
 
-std::string get_dateiname(const std::string& zusi_pfad) {
-  const auto& pos = zusi_pfad.rfind(zusixml::zusiSep);
-  return (pos == std::string::npos || pos == zusi_pfad.size() - 1) ? zusi_pfad : zusi_pfad.substr(pos + 1);
+std::string get_dateiname(const zusixml::ZusiPfad& zusi_pfad) {
+  const auto& zusi_pfad_str = zusi_pfad.alsZusiPfad();
+  const auto& pos = zusi_pfad_str.rfind(zusixml::zusiSep);
+  return std::string((pos == std::string::npos || pos == zusi_pfad_str.size() - 1) ? zusi_pfad_str : zusi_pfad_str.substr(pos + 1));
 }
 
 const Strecke* get_strecke(const Dateiverknuepfung& datei) {
-  const auto& zusi = file_cache.get_datei(datei.Dateiname);
-  if (!zusi || !zusi->Strecke) {
-    return nullptr;
-  }
-  const auto* result = zusi->Strecke.get();
-  const auto& it = modul_info.find(result);
-  if (it == modul_info.end()) {
-    modul_info.emplace(result, ModulInfo { get_dateiname(datei.Dateiname),
-        zusixml::zusiPfadZuOsPfad(datei.Dateiname, ""), datei.Dateiname });
-  }
-  return result;
-}
-
-const Strecke* get_strecke(const std::string& os_pfad) {
-  const auto& zusi_pfad = osPfadZuZusiPfad(os_pfad);
+  // TODO: Wir gehen davon aus, dass die Dateiverknuepfung immer den kompletten Pfad enthaelt.
+  // Das ist bei der in Zusi ueblichen Modulstruktur der Fall.
+  const auto zusi_pfad = zusixml::ZusiPfad::vonZusiPfad(datei.Dateiname);
   const auto& zusi = file_cache.get_datei(zusi_pfad);
   if (!zusi || !zusi->Strecke) {
     return nullptr;
@@ -167,7 +143,22 @@ const Strecke* get_strecke(const std::string& os_pfad) {
   const auto* result = zusi->Strecke.get();
   const auto& it = modul_info.find(result);
   if (it == modul_info.end()) {
-    modul_info.emplace(result, ModulInfo { get_dateiname(zusi_pfad), os_pfad, zusi_pfad });
+    modul_info.emplace(result, ModulInfo { get_dateiname(zusi_pfad),
+        zusi_pfad.alsOsPfad(), std::string(zusi_pfad.alsZusiPfad()) });
+  }
+  return result;
+}
+
+const Strecke* get_strecke(const std::string& os_pfad) {
+  const auto& zusi_pfad = zusixml::ZusiPfad::vonOsPfad(os_pfad);
+  const auto& zusi = file_cache.get_datei(zusi_pfad);
+  if (!zusi || !zusi->Strecke) {
+    return nullptr;
+  }
+  const auto* result = zusi->Strecke.get();
+  const auto& it = modul_info.find(result);
+  if (it == modul_info.end()) {
+    modul_info.emplace(result, ModulInfo { get_dateiname(zusi_pfad), os_pfad, std::string(zusi_pfad.alsZusiPfad()) });
   }
   return result;
 }

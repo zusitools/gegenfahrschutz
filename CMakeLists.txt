@@ -4,6 +4,7 @@ project (gegenfahrschutz)
 set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(parser)
+generate_zusi_parser(zusi_parser ${CMAKE_CURRENT_BINARY_DIR}/zusi_parser)
 
 find_package(Boost COMPONENTS filesystem program_options REQUIRED)
 

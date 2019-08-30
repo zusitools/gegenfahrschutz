@@ -13,8 +13,8 @@
 
 class FileCache {
 public:
-  Zusi* get_datei(const std::string_view zusi_pfad) {
-    std::string key(zusi_pfad);
+  Zusi* get_datei(const zusixml::ZusiPfad& zusi_pfad) {
+    std::string key(zusi_pfad.alsZusiPfad());
     std::transform(key.begin(), key.end(), key.begin(), ::tolower);
     auto it = _cache.find(key);
     if (it != std::end(_cache)) {
@@ -22,10 +22,10 @@ public:
     }
 
     try {
-      boost::nowide::cout << "Parsing " << zusi_pfad << "\n";
-      return _cache.emplace(std::make_pair(key, zusixml::parseFile(zusixml::zusiPfadZuOsPfad(zusi_pfad, "")))).first->second.get();
+      boost::nowide::cout << "Parsing " << zusi_pfad.alsZusiPfad() << "\n";
+      return _cache.emplace(std::make_pair(key, zusixml::parseFile(zusi_pfad.alsOsPfad()))).first->second.get();
     } catch (const std::exception& e) {
-      boost::nowide::cerr << "Error parsing " << zusi_pfad << ": " << e.what() << "\n";
+      boost::nowide::cerr << "Error parsing " << zusi_pfad.alsOsPfad() << ": " << e.what() << "\n";
       _cache[key] = nullptr;
       return nullptr;
     }
