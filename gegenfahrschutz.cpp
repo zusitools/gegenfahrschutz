@@ -683,7 +683,7 @@ int main(int argc, char** argv) {
     boost::nowide::cout << " - " << dateiname << "\n";
   }
 
-  boost::nowide::cout << "In den folgenden Modulen müssen die Fahrstrassen mit fahrstr_gen neu erstellt werden:\n";
+  boost::nowide::cout << "In den folgenden Modulen müssen die Fahrstrassen neu erstellt werden:\n";
   for (const auto& strecke : geaenderte_module) {
     boost::nowide::cout << " - " << modul_info.at(strecke).pfad_os << "\n";
   }
