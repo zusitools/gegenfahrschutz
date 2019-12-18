@@ -515,28 +515,41 @@ int main(int argc, char** argv) {
 
   for (const auto& seq_fahrstr_norm : fahrstr_normrichtung) {
     for (const auto& seq_fahrstr_gegen : fahrstr_gegenrichtung) {
-      if ((seq_fahrstr_gegen.max_element_seq_idx >= seq_fahrstr_norm.min_element_seq_idx) && !gegeneinander_verriegelt(seq_fahrstr_norm, seq_fahrstr_gegen, neue_register)) {
-        size_t idx_norm = seq_fahrstr_norm.min_element_seq_idx;
-        while (!freie_elemente_laufrichtung[idx_norm] && (idx_norm <= seq_fahrstr_norm.max_element_seq_idx)) {
-          ++idx_norm;
-        }
-
-        size_t idx_gegen_plus_1 = seq_fahrstr_gegen.max_element_seq_idx + 1;  // + 1, damit es kleiner werden kann als seq_fahrstr_gegen.min_element_seq_idx + 1, das hoechstens 1 ist.
-        while (!freie_elemente_gegenrichtung[idx_gegen_plus_1 - 1] && (idx_gegen_plus_1 >= seq_fahrstr_gegen.min_element_seq_idx + 1)) {
-          --idx_gegen_plus_1;
-        }
-
-        if ((idx_norm > seq_fahrstr_norm.max_element_seq_idx) || (idx_gegen_plus_1 < seq_fahrstr_gegen.min_element_seq_idx + 1)) {
-          boost::nowide::cerr << "Kein freies Element gefunden, um die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander zu verriegeln\n";
-          return 1;
-        }
-
-        neue_register.emplace_back(idx_norm, idx_gegen_plus_1 - 1);
-        geaenderte_module.insert(get_strecke(seq_fahrstr_norm.fahrstrasse->FahrstrStart->Datei));
-        geaenderte_module.insert(get_strecke(seq_fahrstr_gegen.fahrstrasse->FahrstrStart->Datei));
-        freie_elemente_laufrichtung[idx_norm] = false;
-        freie_elemente_gegenrichtung[idx_gegen_plus_1 - 1] = false;
+      if (seq_fahrstr_gegen.max_element_seq_idx < seq_fahrstr_norm.min_element_seq_idx) {
+        // Die Fahrstrassen muessen nicht gegeneinander verriegelt werden.
+        continue;
       }
+      if (gegeneinander_verriegelt(seq_fahrstr_norm, seq_fahrstr_gegen, neue_register)) {
+        // Die Fahrstrassen sind bereits gegeneinander verriegelt -- pruefe aber noch,
+        // ob das auch ohne die neuen Register der Fall waere. Falls nein, muessen die
+        // Fahrstrassen in den betroffenen Modulen neu erzeugt werden.
+        if (!gegeneinander_verriegelt(seq_fahrstr_norm, seq_fahrstr_gegen, {})) {
+          geaenderte_module.insert(get_strecke(seq_fahrstr_norm.fahrstrasse->FahrstrStart->Datei));
+          geaenderte_module.insert(get_strecke(seq_fahrstr_gegen.fahrstrasse->FahrstrStart->Datei));
+        }
+        continue;
+      }
+
+      size_t idx_norm = seq_fahrstr_norm.min_element_seq_idx;
+      while (!freie_elemente_laufrichtung[idx_norm] && (idx_norm <= seq_fahrstr_norm.max_element_seq_idx)) {
+        ++idx_norm;
+      }
+
+      size_t idx_gegen_plus_1 = seq_fahrstr_gegen.max_element_seq_idx + 1;  // + 1, damit es kleiner werden kann als seq_fahrstr_gegen.min_element_seq_idx + 1, das hoechstens 1 ist.
+      while (!freie_elemente_gegenrichtung[idx_gegen_plus_1 - 1] && (idx_gegen_plus_1 >= seq_fahrstr_gegen.min_element_seq_idx + 1)) {
+        --idx_gegen_plus_1;
+      }
+
+      if ((idx_norm > seq_fahrstr_norm.max_element_seq_idx) || (idx_gegen_plus_1 < seq_fahrstr_gegen.min_element_seq_idx + 1)) {
+        boost::nowide::cerr << "Kein freies Element gefunden, um die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander zu verriegeln\n";
+        return 1;
+      }
+
+      neue_register.emplace_back(idx_norm, idx_gegen_plus_1 - 1);
+      geaenderte_module.insert(get_strecke(seq_fahrstr_norm.fahrstrasse->FahrstrStart->Datei));
+      geaenderte_module.insert(get_strecke(seq_fahrstr_gegen.fahrstrasse->FahrstrStart->Datei));
+      freie_elemente_laufrichtung[idx_norm] = false;
+      freie_elemente_gegenrichtung[idx_gegen_plus_1 - 1] = false;
     }
   }
 
