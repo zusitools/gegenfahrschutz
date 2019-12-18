@@ -542,6 +542,7 @@ int main(int argc, char** argv) {
 
   // Umsetzung Verriegelung zweier Elemente:
   // Wenn in derselben Moduldatei: neues manuelles Register in beiden Elementen (jeweils eine Richtung)
+  //   + entsprechende Referenzpunkte
   // Wenn nicht in derselben Moduldatei: neue manuelle Register in beiden Elementen (jeweils eine Richtung)
   //   + Referenzpunkt fuer das Register + Register in Fahrstr verknuepfen "A" des jeweils anderen Registers
   std::unordered_map<const Strecke*, decltype(StreckenelementRichtungsInfo::Reg)> maxManuellesRegister;
@@ -582,18 +583,22 @@ int main(int argc, char** argv) {
     const auto& modul1 = modul_info.at(el1.st3);
     const auto& modul2 = modul_info.at(el2.st3);
 
-    const auto register_el1 = neuesManuellesRegister(el1.st3);
+    const auto neues_register = neuesManuellesRegister(el1.st3);
     const auto refpunkt_el1 = neuerRefpunkt(el1.st3);
-    get_pair_element(strecken_aenderungen[el1.st3].neue_register[el1.element->Nr],  el1.normrichtung) = NeuesRegister { register_el1, 0, "" };
-    strecken_aenderungen[el1.st3].neue_refpunkte.push_back(NeuerRegisterRefpunkt { refpunkt_el1, el1.element->Nr, el1.normrichtung, register_el1 });
+    get_pair_element(strecken_aenderungen[el1.st3].neue_register[el1.element->Nr],  el1.normrichtung) = NeuesRegister { neues_register, 0, "" };
+    strecken_aenderungen[el1.st3].neue_refpunkte.push_back(NeuerRegisterRefpunkt { refpunkt_el1, el1.element->Nr, el1.normrichtung, neues_register });
 
     if (el1.st3 == el2.st3) {
-      boost::nowide::cout << " - Neues manuelles Register " << register_el1 << " an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << " und " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << "\n";
-      get_pair_element(strecken_aenderungen[el2.st3].neue_register[el2.element->Nr], !el2.normrichtung) = NeuesRegister { register_el1, 0, "" };
+      const auto refpunkt_el2 = neuerRefpunkt(el2.st3);
+      boost::nowide::cout << " - Neues manuelles Register " << neues_register << " an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << " und " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << "\n";
+      boost::nowide::cout << "   - Neuer Referenzpunkt " << refpunkt_el1 << " (Typ Register) an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << "\n";
+      boost::nowide::cout << "   - Neuer Referenzpunkt " << refpunkt_el2 << " (Typ Register) an " << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << "\n";
+      get_pair_element(strecken_aenderungen[el2.st3].neue_register[el2.element->Nr], !el2.normrichtung) = NeuesRegister { neues_register, 0, "" };
+      strecken_aenderungen[el2.st3].neue_refpunkte.push_back(NeuerRegisterRefpunkt { refpunkt_el2, el2.element->Nr, !el2.normrichtung, neues_register });
     } else {
-      boost::nowide::cout << " - Neues manuelles Register " << register_el1 << " an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << "\n";
-      boost::nowide::cout << " - Neuer Referenzpunkt " << refpunkt_el1 << " (Typ Register) an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << "\n";
-      boost::nowide::cout << " - Neues Ereignis \"Register in Fahrstrasse verknuepfen A\" mit Referenznummer " << refpunkt_el1 << " und Moduldatei " << modul1.pfad_zusi << " an " << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << "\n";
+      boost::nowide::cout << " - Neues manuelles Register " << neues_register << " an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << "\n";
+      boost::nowide::cout << "   - Neuer Referenzpunkt " << refpunkt_el1 << " (Typ Register) an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << "\n";
+      boost::nowide::cout << "   - Neues Ereignis \"Register in Fahrstrasse verknuepfen A\" mit Referenznummer " << refpunkt_el1 << " und Moduldatei " << modul1.pfad_zusi << " an " << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << "\n";
       get_pair_element(strecken_aenderungen[el2.st3].neue_register[el2.element->Nr], !el2.normrichtung) = NeuesRegister { 0, refpunkt_el1, modul1.pfad_zusi };
     }
   }
