@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.1)
-project (gegenfahrschutz)
+project(gegenfahrschutz LANGUAGES CXX VERSION 1.3.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -61,5 +61,6 @@ find_package(Boost COMPONENTS filesystem program_options REQUIRED)
 add_executable(gegenfahrschutz gegenfahrschutz.cpp nowide/src/iostream.cpp)
 target_include_directories(gegenfahrschutz PRIVATE nowide/include)
 target_link_libraries(gegenfahrschutz PRIVATE zusi_parser Boost::filesystem Boost::program_options)
+set_target_properties(gegenfahrschutz PROPERTIES OUTPUT_NAME "gegenfahrschutz-${PROJECT_VERSION}")
 
 install(TARGETS gegenfahrschutz RUNTIME DESTINATION bin)
