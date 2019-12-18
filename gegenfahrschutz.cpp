@@ -312,7 +312,8 @@ int main(int argc, char** argv) {
     element_seq_elemente.clear();
 
     ElementRichtungRef cur_element { start_st3, start_element, start_normrichtung };
-    for (size_t idx = 0; idx <= 9999; ++idx) {
+    constexpr size_t max_num_elemente = 10000;
+    for (size_t idx = 0; idx < max_num_elemente; ++idx) {
       element_seq_elemente.emplace_back(cur_element);
 
       if (cur_element.element == ziel_element) {
@@ -322,13 +323,17 @@ int main(int argc, char** argv) {
 
       if (idx > 0 && (cur_element.gegenrichtung().nachfolger_selbes_modul().size() + cur_element.gegenrichtung().nachfolger_anderes_modul().size() > 1)) {
         // Weiche in der Gegenrichtung
-        break;
+        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung: ignoriere stumpf befahrene Weiche an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << '\n';
       }
 
-      if (cur_element.nachfolger_selbes_modul().size() + cur_element.nachfolger_anderes_modul().size() != 1) {
-        // Weiche oder Streckenende
-        break;
+      if (cur_element.nachfolger_selbes_modul().size() + cur_element.nachfolger_anderes_modul().size() == 0) {
+        // Streckenende
+        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (kein Nachfolger)\n";
+        return false;
+      } else if (cur_element.nachfolger_selbes_modul().size() + cur_element.nachfolger_anderes_modul().size() > 1) {
+        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung: ignoriere spitz befahrene Weiche an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (nimm ersten Nachfolger)\n";
       }
+
       const auto& next_element = [&]() {
         if (!cur_element.nachfolger_selbes_modul().empty()) {
           const int32_t anschluss_mask = (cur_element.normrichtung ? 0x1 : 0x100);
@@ -348,7 +353,7 @@ int main(int argc, char** argv) {
       cur_element = next_element;
     }
     assert(cur_element);
-    boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << "\n";
+    boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (Zielelement nach nach " << max_num_elemente << " Schritten nicht erreicht)\n";
 
     return false;
   };
