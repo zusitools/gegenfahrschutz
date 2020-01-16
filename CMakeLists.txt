@@ -36,6 +36,7 @@ generate_zusi_parser(zusi_parser ${CMAKE_CURRENT_BINARY_DIR}/zusi_parser
     Fahrstrasse::FahrstrZiel
     Fahrstrasse::FahrstrWeiche
     Fahrstrasse::FahrstrRegister
+    Fahrstrasse::FahrstrTeilaufloesung
 
     FahrstrStart::Datei
     FahrstrStart::Ref
@@ -46,6 +47,8 @@ generate_zusi_parser(zusi_parser ${CMAKE_CURRENT_BINARY_DIR}/zusi_parser
     FahrstrWeiche::FahrstrWeichenlage
     FahrstrRegister::Datei
     FahrstrRegister::Ref
+    FahrstrTeilaufloesung::Datei
+    FahrstrTeilaufloesung::Ref
 
     Dateiverknuepfung::Dateiname
 

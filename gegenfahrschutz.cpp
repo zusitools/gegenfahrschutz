@@ -111,11 +111,26 @@ class ElementSeq {
 
 // Beschreibt eine Fahrstrasse, die ueber Elemente aus einer Elementsequenz verlaeuft.
 // Da die Elementsequenz keine Weichen enthaelt, kann der Teil der Fahrstrasse, der innerhalb der Sequenz verlaeuft,
-// durch das Intervall [`min_element_seq_idx`, `max_element_seq_idx`] (jeweils einschliesslich) beschrieben werden.
+// durch das Intervall [`start_element_seq_idx`, `ende_element_seq_idx`] (jeweils einschliesslich) beschrieben werden.
+// Register duerfen nur im Intervall [`min_register_element_seq_idx`, `ende_element_seq_idx`] (jeweils einschliesslich)
+// gesetzt werden.
+//
+// Eine Fahrstrasse verlaeuft in *Normrichtung*, wenn start_element_seq_idx < ende_element_seq_idx,
+// sonst in *Gegenrichtung*.
 struct ElementSeqFahrstr {
   const Fahrstrasse* fahrstrasse;
-  size_t min_element_seq_idx;
-  size_t max_element_seq_idx;
+  size_t start_element_seq_idx;
+  size_t min_register_element_seq_idx;
+  size_t ende_element_seq_idx;
+
+  bool ist_normrichtung() const {
+    return start_element_seq_idx < ende_element_seq_idx;
+  }
+
+  bool enthaelt_element_seq_idx(size_t element_seq_idx) const {
+    const auto p = std::minmax(start_element_seq_idx, ende_element_seq_idx);
+    return p.first <= element_seq_idx && element_seq_idx <= p.second;
+  }
 };
 
 struct ModulInfo {
@@ -186,9 +201,10 @@ struct StreckenAenderung {
 // angegebenen geplanten Registerpositionen beruecksichtigt.
 bool gegeneinander_verriegelt(const ElementSeqFahrstr& fs1, const ElementSeqFahrstr& fs2, const std::vector<std::pair<size_t, size_t>>& neue_register)
 {
+  assert(fs1.ist_normrichtung() != fs2.ist_normrichtung());
+
   for (const auto& r : neue_register) {
-    if ((r.first >= fs1.min_element_seq_idx) && (r.first <= fs1.max_element_seq_idx) &&
-        (r.second >= fs2.min_element_seq_idx) && (r.second <= fs2.max_element_seq_idx)) {
+    if (fs1.enthaelt_element_seq_idx(r.first) && fs2.enthaelt_element_seq_idx(r.second)) {
       return true;
     }
   }
@@ -394,37 +410,67 @@ int main(int argc, char** argv) {
       ElementRichtungRef cur_element = start_element;
       size_t idx = 0;
       size_t fahrstr_weichen_idx = 0;
+      size_t fahrstr_aufloesepunkt_idx = 0;
 
-      bool in_element_seq = false;
-      bool element_seq_in_normrichtung = false;
-      size_t min_element_seq_idx = 0;
-      size_t max_element_seq_idx = 0;
+      std::optional<size_t> start_element_seq_idx = std::nullopt;
+      std::optional<size_t> letzter_element_seq_idx = std::nullopt;
+      std::optional<size_t> letzter_aufloesepunkt_element_seq_idx = std::nullopt;
 
       while (cur_element && (idx <= 9999)) {
         const auto element_seq_idx = element_seq.index(cur_element.element);
         if ((idx != 0) && element_seq_idx.has_value()) {  // idx != 0: Startelement ist selbst nicht in der Fahrstrasse enthalten
-          if (!in_element_seq) {
-            in_element_seq = true;
-            element_seq_in_normrichtung = (cur_element.normrichtung == element_seq.elemente().at(*element_seq_idx).normrichtung);
-            min_element_seq_idx = *element_seq_idx;
-            max_element_seq_idx = *element_seq_idx;
-          } else {
-            min_element_seq_idx = std::min(min_element_seq_idx, *element_seq_idx);
-            max_element_seq_idx = std::max(max_element_seq_idx, *element_seq_idx);
+          if (!start_element_seq_idx.has_value()) {
+            start_element_seq_idx = element_seq_idx;
           }
+          letzter_element_seq_idx = element_seq_idx;
         }
 
         idx++;
         if (cur_element == ziel_element) {
-          if (in_element_seq) {
-            ElementSeqFahrstr seq_fahrstr { fahrstrasse.get(), min_element_seq_idx, max_element_seq_idx };
-            if (element_seq_in_normrichtung) {
-              fahrstr_normrichtung.push_back(std::move(seq_fahrstr));
-            } else {
-              fahrstr_gegenrichtung.push_back(std::move(seq_fahrstr));
-            }
+          if (start_element_seq_idx.has_value()) {
+            assert(letzter_element_seq_idx.has_value());
+            const auto min_register_element_seq_idx = [&]() {
+              if (!letzter_aufloesepunkt_element_seq_idx.has_value()) {
+                return *start_element_seq_idx;
+              } else if (*letzter_aufloesepunkt_element_seq_idx < *letzter_element_seq_idx) {
+                // Ein Register im Aufloeseelement selbst wird auch freigegeben,
+                // deshalb darf das Register zum Verriegeln erst ein Element spaeter eingefuegt werden.
+                return *letzter_aufloesepunkt_element_seq_idx + 1;
+              } else {
+                assert(*letzter_aufloesepunkt_element_seq_idx > *letzter_element_seq_idx);
+                return *letzter_aufloesepunkt_element_seq_idx - 1;
+              }
+            }();
+            ElementSeqFahrstr seq_fahrstr { fahrstrasse.get(), *start_element_seq_idx,
+              min_register_element_seq_idx, *letzter_element_seq_idx };
+            (seq_fahrstr.ist_normrichtung() ? fahrstr_normrichtung : fahrstr_gegenrichtung).push_back(std::move(seq_fahrstr));
           }
           break;
+        }
+
+        if (element_seq_idx.has_value()) {
+          // Pruefe, ob am aktuellen Element ein Teilaufloesepunkt liegt.
+          // (Ein Teilaufloesepunkt kann nicht im Zielelement liegen,
+          // dort kann nur ein Aufloesepunkt liegen.)
+          for (size_t i = 0; i < fahrstrasse->children_FahrstrTeilaufloesung.size(); ++i)
+          {
+            // Optimierung: Normalerweise sind die Teilaufloesepunkte in der korrekten Reihenfolge in der Fahrstrasse verknuepft.
+            const auto aufloesepunkte_idx = (fahrstr_aufloesepunkt_idx + i) % fahrstrasse->children_FahrstrTeilaufloesung.size();
+            const auto& aufloesepunkt = fahrstrasse->children_FahrstrTeilaufloesung[aufloesepunkte_idx];
+            const auto st3 = get_strecke(aufloesepunkt->Datei);
+            if (!st3) {
+              break;
+            }
+            const auto refpunkt = get_refpunkt_by_nr(*st3, aufloesepunkt->Ref);
+            if (!refpunkt) {
+              break;
+            }
+            if ((refpunkt->StrElement == cur_element.element->Nr) && (refpunkt->StrNorm == cur_element.normrichtung)) {
+              letzter_aufloesepunkt_element_seq_idx = element_seq_idx;
+              fahrstr_aufloesepunkt_idx = aufloesepunkte_idx + 1;
+              break;
+            }
+          }
         }
 
         if (cur_element.nachfolger_selbes_modul().size() + cur_element.nachfolger_anderes_modul().size() == 0) {
@@ -506,17 +552,28 @@ int main(int argc, char** argv) {
   std::vector<std::pair<size_t, size_t>> neue_register;
   std::unordered_set<const Strecke*> geaenderte_module;
 
+  // Sortiere Fahrstrassen so, dass kuerzere Fahrstrassen (Aufgleisfahrstrassen)
+  // vor laengeren Fahrstrassen mit demselben Ziel bearbeitet werden.
+  // So ergeben sich mehr gemeinsame Nutzungen von Registern.
   std::sort(fahrstr_normrichtung.begin(), fahrstr_normrichtung.end(), [](const auto& fs1, const auto& fs2) {
-      return fs1.min_element_seq_idx > fs2.min_element_seq_idx;
-      });
+      return fs1.start_element_seq_idx > fs2.start_element_seq_idx;
+    });
   std::sort(fahrstr_gegenrichtung.begin(), fahrstr_gegenrichtung.end(), [](const auto& fs1, const auto& fs2) {
-      return fs1.max_element_seq_idx < fs2.max_element_seq_idx;
-      });
+      return fs1.start_element_seq_idx < fs2.start_element_seq_idx;
+    });
 
   for (const auto& seq_fahrstr_norm : fahrstr_normrichtung) {
     for (const auto& seq_fahrstr_gegen : fahrstr_gegenrichtung) {
-      if (seq_fahrstr_gegen.max_element_seq_idx < seq_fahrstr_norm.min_element_seq_idx) {
-        // Die Fahrstrassen muessen nicht gegeneinander verriegelt werden.
+      // Normrichtung: start <= min_register < ende
+      assert(seq_fahrstr_norm.start_element_seq_idx <= seq_fahrstr_norm.min_register_element_seq_idx);
+      assert(seq_fahrstr_norm.min_register_element_seq_idx < seq_fahrstr_norm.ende_element_seq_idx);
+      // Gegenrichtung: ende < min_register <= start
+      assert(seq_fahrstr_gegen.ende_element_seq_idx < seq_fahrstr_gegen.min_register_element_seq_idx);
+      assert(seq_fahrstr_gegen.min_register_element_seq_idx <= seq_fahrstr_gegen.start_element_seq_idx);
+
+      if (seq_fahrstr_gegen.start_element_seq_idx < seq_fahrstr_norm.start_element_seq_idx) {
+        // Die Fahrstrassen muessen nicht gegeneinander verriegelt werden,
+        // weil eine Fahrstrasse "im Ruecken" der anderen liegt.
         continue;
       }
       if (gegeneinander_verriegelt(seq_fahrstr_norm, seq_fahrstr_gegen, neue_register)) {
@@ -530,17 +587,17 @@ int main(int argc, char** argv) {
         continue;
       }
 
-      size_t idx_norm = seq_fahrstr_norm.min_element_seq_idx;
-      while (!freie_elemente_laufrichtung[idx_norm] && (idx_norm <= seq_fahrstr_norm.max_element_seq_idx)) {
+      size_t idx_norm = seq_fahrstr_norm.min_register_element_seq_idx;
+      while (!freie_elemente_laufrichtung[idx_norm] && (idx_norm <= seq_fahrstr_norm.ende_element_seq_idx)) {
         ++idx_norm;
       }
 
-      size_t idx_gegen_plus_1 = seq_fahrstr_gegen.max_element_seq_idx + 1;  // + 1, damit es kleiner werden kann als seq_fahrstr_gegen.min_element_seq_idx + 1, das hoechstens 1 ist.
-      while (!freie_elemente_gegenrichtung[idx_gegen_plus_1 - 1] && (idx_gegen_plus_1 >= seq_fahrstr_gegen.min_element_seq_idx + 1)) {
+      size_t idx_gegen_plus_1 = seq_fahrstr_gegen.min_register_element_seq_idx + 1;  // + 1, damit es kleiner werden kann als seq_fahrstr_gegen.ende_element_seq_idx + 1, das hoechstens 1 ist.
+      while (!freie_elemente_gegenrichtung[idx_gegen_plus_1 - 1] && (idx_gegen_plus_1 >= seq_fahrstr_gegen.ende_element_seq_idx + 1)) {
         --idx_gegen_plus_1;
       }
 
-      if ((idx_norm > seq_fahrstr_norm.max_element_seq_idx) || (idx_gegen_plus_1 < seq_fahrstr_gegen.min_element_seq_idx + 1)) {
+      if ((idx_norm > seq_fahrstr_norm.ende_element_seq_idx) || (idx_gegen_plus_1 < seq_fahrstr_gegen.ende_element_seq_idx + 1)) {
         boost::nowide::cerr << "Kein freies Element gefunden, um die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander zu verriegeln\n";
         return 1;
       }
