@@ -289,10 +289,10 @@ void print_visualisierung(
     boost::nowide::cerr << '|'; ++pos;
     while (pos < start_pos[fs.min_register_element_seq_idx]) { boost::nowide::cerr << "-"; ++pos; }
     while (pos + 1 < ende_pos[fs.ende_element_seq_idx]) { boost::nowide::cerr << "="; ++pos; }
-    boost::nowide::cerr << ">| " << fs.fahrstrasse->FahrstrName << "\n";
+    boost::nowide::cerr << ">| " << fs.fahrstrasse->FahrstrName << std::endl;
   }
 
-  boost::nowide::cerr << index_str << '\n';
+  boost::nowide::cerr << index_str << std::endl;
 
   for (const auto& fs : fahrstr_gegenrichtung) {
     size_t pos = 0;
@@ -300,7 +300,7 @@ void print_visualisierung(
     boost::nowide::cerr << "|<"; pos += 2;
     while (pos < ende_pos[fs.min_register_element_seq_idx]) { boost::nowide::cerr << '='; ++pos; }
     while (pos < ende_pos[fs.start_element_seq_idx]) { boost::nowide::cerr << '-'; ++pos; }
-    boost::nowide::cerr << "| " << fs.fahrstrasse->FahrstrName << "\n";
+    boost::nowide::cerr << "| " << fs.fahrstrasse->FahrstrName << std::endl;
   }
 }
 
@@ -333,7 +333,7 @@ int main(int argc, char** argv) {
   po::notify(vars);
 
   if (vars.count("help")) {
-    boost::nowide::cout << desc << "\n";
+    boost::nowide::cout << desc << std::endl;
     return 1;
   }
 
@@ -342,7 +342,7 @@ int main(int argc, char** argv) {
   const auto& start_st3 = get_strecke(start_st3_pfad);
   if (!start_st3)
   {
-    boost::nowide::cerr << "Fehler beim Laden von " << start_st3_pfad << "\n";
+    boost::nowide::cerr << "Fehler beim Laden von " << start_st3_pfad << std::endl;
     return 1;
   }
 
@@ -354,7 +354,7 @@ int main(int argc, char** argv) {
   const auto& ziel_st3 = get_strecke(ziel_st3_pfad);
   if (!ziel_st3)
   {
-    boost::nowide::cerr << "Fehler beim Laden von " << ziel_st3_pfad << "\n";
+    boost::nowide::cerr << "Fehler beim Laden von " << ziel_st3_pfad << std::endl;
     return 1;
   }
 
@@ -367,14 +367,14 @@ int main(int argc, char** argv) {
   const StrElement* start_element = get_element_by_nr(*start_st3, start_element_nr);
   if (!start_element)
   {
-    boost::nowide::cerr << "Element " << start_element_nr << " existiert nicht in Datei " << start_st3_pfad << "\n";
+    boost::nowide::cerr << "Element " << start_element_nr << " existiert nicht in Datei " << start_st3_pfad << std::endl;
     return 1;
   }
 
   const StrElement* ziel_element = get_element_by_nr(*ziel_st3, ziel_element_nr);
   if (!ziel_element)
   {
-    boost::nowide::cerr << "Element " << ziel_element_nr << " existiert nicht in Datei " << ziel_st3_pfad << "\n";
+    boost::nowide::cerr << "Element " << ziel_element_nr << " existiert nicht in Datei " << ziel_st3_pfad << std::endl;
     return 1;
   }
 
@@ -390,21 +390,21 @@ int main(int argc, char** argv) {
       element_seq_elemente.emplace_back(cur_element);
 
       if (cur_element.element == ziel_element) {
-        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung erfolgreich\n";
+        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung erfolgreich" << std::endl;
         return true;
       }
 
       if (idx > 0 && (cur_element.gegenrichtung().nachfolger_selbes_modul().size() + cur_element.gegenrichtung().nachfolger_anderes_modul().size() > 1)) {
         // Weiche in der Gegenrichtung
-        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung: ignoriere stumpf befahrene Weiche an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << '\n';
+        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung: ignoriere stumpf befahrene Weiche an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << std::endl;
       }
 
       if (cur_element.nachfolger_selbes_modul().size() + cur_element.nachfolger_anderes_modul().size() == 0) {
         // Streckenende
-        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (kein Nachfolger)\n";
+        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (kein Nachfolger)" << std::endl;
         return false;
       } else if (cur_element.nachfolger_selbes_modul().size() + cur_element.nachfolger_anderes_modul().size() > 1) {
-        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung: ignoriere spitz befahrene Weiche an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (nimm ersten Nachfolger)\n";
+        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung: ignoriere spitz befahrene Weiche an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (nimm ersten Nachfolger)" << std::endl;
       }
 
       const auto& next_element = [&]() {
@@ -426,13 +426,13 @@ int main(int argc, char** argv) {
       cur_element = next_element;
     }
     assert(cur_element);
-    boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (Zielelement nach nach " << max_num_elemente << " Schritten nicht erreicht)\n";
+    boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (Zielelement nach nach " << max_num_elemente << " Schritten nicht erreicht)" << std::endl;
 
     return false;
   };
 
   if (!findeWegZuZiel(true) && !findeWegZuZiel(false)) {
-    boost::nowide::cerr << "Keinen Weg zwischen den angegebenen Streckenelementen gefunden, der nicht über eine Weiche führt\n";
+    boost::nowide::cerr << "Keinen Weg zwischen den angegebenen Streckenelementen gefunden, der nicht über eine Weiche führt" << std::endl;
     return 1;
   }
 
@@ -620,14 +620,14 @@ int main(int argc, char** argv) {
     });
 
   if (debug) {
-    boost::nowide::cout << "Fahrstrassen in Normrichtung:\n";
+    boost::nowide::cout << "Fahrstrassen in Normrichtung:" << std::endl;
     for (const auto& seq_fahrstr : fahrstr_normrichtung) {
-      boost::nowide::cerr << " - " << seq_fahrstr.fahrstrasse->FahrstrName << " [" << seq_fahrstr.start_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "] [" << seq_fahrstr.min_register_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "]\n";
+      boost::nowide::cerr << " - " << seq_fahrstr.fahrstrasse->FahrstrName << " [" << seq_fahrstr.start_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "] [" << seq_fahrstr.min_register_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "]" << std::endl;
     }
 
-    boost::nowide::cerr << "Fahrstrassen in Gegenrichtung:\n";
+    boost::nowide::cerr << "Fahrstrassen in Gegenrichtung:" << std::endl;
     for (const auto& seq_fahrstr : fahrstr_gegenrichtung) {
-      boost::nowide::cerr << " - " << seq_fahrstr.fahrstrasse->FahrstrName << " [" << seq_fahrstr.start_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "] [" << seq_fahrstr.min_register_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "]\n";
+      boost::nowide::cerr << " - " << seq_fahrstr.fahrstrasse->FahrstrName << " [" << seq_fahrstr.start_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "] [" << seq_fahrstr.min_register_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "]" << std::endl;
     }
 
     print_visualisierung(fahrstr_normrichtung, fahrstr_gegenrichtung);
@@ -646,7 +646,7 @@ int main(int argc, char** argv) {
         // Die Fahrstrassen muessen nicht gegeneinander verriegelt werden,
         // weil eine Fahrstrasse "im Ruecken" der anderen liegt.
         if (debug) {
-          boost::nowide::cerr << " + Die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" muessen nicht gegeneinander verriegelt werden.\n";
+          boost::nowide::cerr << " + Die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" muessen nicht gegeneinander verriegelt werden." << std::endl;
         }
         continue;
       }
@@ -657,20 +657,20 @@ int main(int argc, char** argv) {
         // Fahrstrassen in den betroffenen Modulen neu erzeugt werden.
         if (!gegeneinander_verriegelt(seq_fahrstr_norm, seq_fahrstr_gegen, {})) {
           if (debug) {
-            boost::nowide::cerr << " + Die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" sind durch neue Register gegeneinander verriegelt\n";
+            boost::nowide::cerr << " + Die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" sind durch neue Register gegeneinander verriegelt" << std::endl;
           }
           geaenderte_module.insert(get_strecke(seq_fahrstr_norm.fahrstrasse->FahrstrStart->Datei));
           geaenderte_module.insert(get_strecke(seq_fahrstr_gegen.fahrstrasse->FahrstrStart->Datei));
         } else {
           if (debug) {
-            boost::nowide::cerr << " + Die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" sind bereits gegeneinander verriegelt, auch ohne neue Register\n";
+            boost::nowide::cerr << " + Die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" sind bereits gegeneinander verriegelt, auch ohne neue Register" << std::endl;
           }
         }
         continue;
       }
 
       if (debug) {
-        boost::nowide::cerr << " + Verriegele die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander\n";
+        boost::nowide::cerr << " + Verriegele die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander" << std::endl;
       }
 
       size_t idx_norm = seq_fahrstr_norm.min_register_element_seq_idx;
@@ -684,12 +684,12 @@ int main(int argc, char** argv) {
       }
 
       if ((idx_norm > seq_fahrstr_norm.ende_element_seq_idx) || (idx_gegen_plus_1 < seq_fahrstr_gegen.ende_element_seq_idx + 1)) {
-        boost::nowide::cerr << "Kein freies Element gefunden, um die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander zu verriegeln\n";
+        boost::nowide::cerr << "Kein freies Element gefunden, um die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander zu verriegeln" << std::endl;
         return 1;
       }
 
       if (debug) {
-        boost::nowide::cerr << " + Neue Register an Index " << idx_norm << " und " << (idx_gegen_plus_1 - 1) << '\n';
+        boost::nowide::cerr << " + Neue Register an Index " << idx_norm << " und " << (idx_gegen_plus_1 - 1) << std::endl;
       }
       neue_register.emplace_back(idx_norm, idx_gegen_plus_1 - 1);
       geaenderte_module.insert(get_strecke(seq_fahrstr_norm.fahrstrasse->FahrstrStart->Datei));
@@ -749,15 +749,15 @@ int main(int argc, char** argv) {
 
     if (el1.st3 == el2.st3) {
       const auto refpunkt_el2 = neuerRefpunkt(el2.st3);
-      boost::nowide::cout << " - Neues manuelles Register " << neues_register << " an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << " und " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << "\n";
-      boost::nowide::cout << "   - Neuer Referenzpunkt " << refpunkt_el1 << " (Typ Register) an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << "\n";
-      boost::nowide::cout << "   - Neuer Referenzpunkt " << refpunkt_el2 << " (Typ Register) an " << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << "\n";
+      boost::nowide::cout << " - Neues manuelles Register " << neues_register << " an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << " und " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << std::endl;
+      boost::nowide::cout << "   - Neuer Referenzpunkt " << refpunkt_el1 << " (Typ Register) an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << std::endl;
+      boost::nowide::cout << "   - Neuer Referenzpunkt " << refpunkt_el2 << " (Typ Register) an " << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << std::endl;
       get_pair_element(strecken_aenderungen[el2.st3].neue_register[el2.element->Nr], !el2.normrichtung) = NeuesRegister { neues_register, 0, "" };
       strecken_aenderungen[el2.st3].neue_refpunkte.push_back(NeuerRegisterRefpunkt { refpunkt_el2, el2.element->Nr, !el2.normrichtung, neues_register });
     } else {
-      boost::nowide::cout << " - Neues manuelles Register " << neues_register << " an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << "\n";
-      boost::nowide::cout << "   - Neuer Referenzpunkt " << refpunkt_el1 << " (Typ Register) an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << "\n";
-      boost::nowide::cout << "   - Neues Ereignis \"Register in Fahrstrasse verknuepfen A\" mit Referenznummer " << refpunkt_el1 << " und Moduldatei " << modul1.pfad_zusi << " an " << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << "\n";
+      boost::nowide::cout << " - Neues manuelles Register " << neues_register << " an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << std::endl;
+      boost::nowide::cout << "   - Neuer Referenzpunkt " << refpunkt_el1 << " (Typ Register) an " << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << std::endl;
+      boost::nowide::cout << "   - Neues Ereignis \"Register in Fahrstrasse verknuepfen A\" mit Referenznummer " << refpunkt_el1 << " und Moduldatei " << modul1.pfad_zusi << " an " << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (!el2.normrichtung ? "blau" : "grün") << std::endl;
       get_pair_element(strecken_aenderungen[el2.st3].neue_register[el2.element->Nr], !el2.normrichtung) = NeuesRegister { 0, refpunkt_el1, modul1.pfad_zusi };
     }
   }
@@ -766,7 +766,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  boost::nowide::cout << "Die folgenden Dateien wurden neu geschrieben:\n";
+  boost::nowide::cout << "Die folgenden Dateien wurden neu geschrieben:" << std::endl;
   for (const auto& [strecke, aenderung] : strecken_aenderungen) {
     const auto& dateiname = modul_info.at(strecke).pfad_os;
     zusixml::FileReader reader(dateiname);
@@ -849,11 +849,11 @@ int main(int argc, char** argv) {
       o << out_string;
     }
 
-    boost::nowide::cout << " - " << dateiname << "\n";
+    boost::nowide::cout << " - " << dateiname << std::endl;
   }
 
-  boost::nowide::cout << "In den folgenden Modulen müssen die Fahrstrassen neu erstellt werden:\n";
+  boost::nowide::cout << "In den folgenden Modulen müssen die Fahrstrassen neu erstellt werden:" << std::endl;
   for (const auto& strecke : geaenderte_module) {
-    boost::nowide::cout << " - " << modul_info.at(strecke).pfad_os << "\n";
+    boost::nowide::cout << " - " << modul_info.at(strecke).pfad_os << std::endl;
   }
 }
