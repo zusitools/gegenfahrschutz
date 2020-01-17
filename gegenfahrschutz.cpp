@@ -21,6 +21,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <utility>
+#include <set>
 #include <string_view>
 #include <vector>
 
@@ -250,6 +251,59 @@ const ValueType& get_pair_element(const std::pair<ValueType, ValueType>& p, bool
   return first_element ? p.first : p.second;
 }
 
+void print_visualisierung(
+  const std::vector<ElementSeqFahrstr>& fahrstr_normrichtung,
+  const std::vector<ElementSeqFahrstr>& fahrstr_gegenrichtung) {
+
+  std::set<size_t> indices;
+  for (const auto& fss : { fahrstr_normrichtung, fahrstr_gegenrichtung }) {
+    for (const auto& fs : fss) {
+      indices.emplace(fs.start_element_seq_idx);
+      indices.emplace(fs.ende_element_seq_idx);
+      indices.emplace(fs.min_register_element_seq_idx);
+    }
+  }
+
+  std::unordered_map<size_t, size_t> start_pos;
+  std::unordered_map<size_t, size_t> ende_pos;
+  std::string index_str;
+  std::optional<size_t> prev = std::nullopt;
+  for (const auto& idx : indices) {
+    if (prev.has_value()) {
+      if (*prev == idx - 1) {
+        index_str += '.';
+      } else {
+        index_str += "...";
+      }
+    }
+    prev = idx;
+
+    start_pos.emplace(idx, index_str.size());
+    index_str += std::to_string(idx);
+    ende_pos.emplace(idx, index_str.size() - 1);
+  }
+
+  for (const auto& fs : fahrstr_normrichtung) {
+    size_t pos = 0;
+    while (pos < start_pos[fs.start_element_seq_idx]) { boost::nowide::cerr << " "; ++pos; }
+    boost::nowide::cerr << '|'; ++pos;
+    while (pos < start_pos[fs.min_register_element_seq_idx]) { boost::nowide::cerr << "-"; ++pos; }
+    while (pos + 1 < ende_pos[fs.ende_element_seq_idx]) { boost::nowide::cerr << "="; ++pos; }
+    boost::nowide::cerr << ">| " << fs.fahrstrasse->FahrstrName << "\n";
+  }
+
+  boost::nowide::cerr << index_str << '\n';
+
+  for (const auto& fs : fahrstr_gegenrichtung) {
+    size_t pos = 0;
+    while (pos < start_pos[fs.ende_element_seq_idx]) { boost::nowide::cerr << " "; ++pos; }
+    boost::nowide::cerr << "|<"; pos += 2;
+    while (pos < ende_pos[fs.min_register_element_seq_idx]) { boost::nowide::cerr << '='; ++pos; }
+    while (pos < ende_pos[fs.start_element_seq_idx]) { boost::nowide::cerr << '-'; ++pos; }
+    boost::nowide::cerr << "| " << fs.fahrstrasse->FahrstrName << "\n";
+  }
+}
+
 int main(int argc, char** argv) {
   boost::nowide::args a(argc, argv);
 
@@ -261,6 +315,7 @@ int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help", "produce help message")
+    ("debug", "Debug-Ausgaben aktivieren")
     ("start-st3", po::value<std::string>(&start_st3_pfad), "ST3-Datei des Start-Streckenelementes")
     ("start-element", po::value<int>(&start_element_nr), "Nummer des Start-Streckenelementes")
     ("ziel-st3", po::value<std::string>(&ziel_st3_pfad), "ST3-Datei des Ziel-Streckenelementes")
@@ -281,6 +336,8 @@ int main(int argc, char** argv) {
     boost::nowide::cout << desc << "\n";
     return 1;
   }
+
+  const bool debug = vars.count("debug");
 
   const auto& start_st3 = get_strecke(start_st3_pfad);
   if (!start_st3)
@@ -562,6 +619,20 @@ int main(int argc, char** argv) {
       return fs1.start_element_seq_idx < fs2.start_element_seq_idx;
     });
 
+  if (debug) {
+    boost::nowide::cout << "Fahrstrassen in Normrichtung:\n";
+    for (const auto& seq_fahrstr : fahrstr_normrichtung) {
+      boost::nowide::cerr << " - " << seq_fahrstr.fahrstrasse->FahrstrName << " [" << seq_fahrstr.start_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "] [" << seq_fahrstr.min_register_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "]\n";
+    }
+
+    boost::nowide::cerr << "Fahrstrassen in Gegenrichtung:\n";
+    for (const auto& seq_fahrstr : fahrstr_gegenrichtung) {
+      boost::nowide::cerr << " - " << seq_fahrstr.fahrstrasse->FahrstrName << " [" << seq_fahrstr.start_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "] [" << seq_fahrstr.min_register_element_seq_idx << ", " << seq_fahrstr.ende_element_seq_idx << "]\n";
+    }
+
+    print_visualisierung(fahrstr_normrichtung, fahrstr_gegenrichtung);
+  }
+
   for (const auto& seq_fahrstr_norm : fahrstr_normrichtung) {
     for (const auto& seq_fahrstr_gegen : fahrstr_gegenrichtung) {
       // Normrichtung: start <= min_register < ende
@@ -574,17 +645,32 @@ int main(int argc, char** argv) {
       if (seq_fahrstr_gegen.start_element_seq_idx < seq_fahrstr_norm.start_element_seq_idx) {
         // Die Fahrstrassen muessen nicht gegeneinander verriegelt werden,
         // weil eine Fahrstrasse "im Ruecken" der anderen liegt.
+        if (debug) {
+          boost::nowide::cerr << " + Die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" muessen nicht gegeneinander verriegelt werden.\n";
+        }
         continue;
       }
+
       if (gegeneinander_verriegelt(seq_fahrstr_norm, seq_fahrstr_gegen, neue_register)) {
         // Die Fahrstrassen sind bereits gegeneinander verriegelt -- pruefe aber noch,
         // ob das auch ohne die neuen Register der Fall waere. Falls nein, muessen die
         // Fahrstrassen in den betroffenen Modulen neu erzeugt werden.
         if (!gegeneinander_verriegelt(seq_fahrstr_norm, seq_fahrstr_gegen, {})) {
+          if (debug) {
+            boost::nowide::cerr << " + Die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" sind durch neue Register gegeneinander verriegelt\n";
+          }
           geaenderte_module.insert(get_strecke(seq_fahrstr_norm.fahrstrasse->FahrstrStart->Datei));
           geaenderte_module.insert(get_strecke(seq_fahrstr_gegen.fahrstrasse->FahrstrStart->Datei));
+        } else {
+          if (debug) {
+            boost::nowide::cerr << " + Die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" sind bereits gegeneinander verriegelt, auch ohne neue Register\n";
+          }
         }
         continue;
+      }
+
+      if (debug) {
+        boost::nowide::cerr << " + Verriegele die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander\n";
       }
 
       size_t idx_norm = seq_fahrstr_norm.min_register_element_seq_idx;
@@ -602,6 +688,9 @@ int main(int argc, char** argv) {
         return 1;
       }
 
+      if (debug) {
+        boost::nowide::cerr << " + Neue Register an Index " << idx_norm << " und " << (idx_gegen_plus_1 - 1) << '\n';
+      }
       neue_register.emplace_back(idx_norm, idx_gegen_plus_1 - 1);
       geaenderte_module.insert(get_strecke(seq_fahrstr_norm.fahrstrasse->FahrstrStart->Datei));
       geaenderte_module.insert(get_strecke(seq_fahrstr_gegen.fahrstrasse->FahrstrStart->Datei));
