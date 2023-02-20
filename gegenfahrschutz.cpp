@@ -683,8 +683,26 @@ int main(int argc, char** argv) {
         --idx_gegen_plus_1;
       }
 
-      if ((idx_norm > seq_fahrstr_norm.ende_element_seq_idx) || (idx_gegen_plus_1 < seq_fahrstr_gegen.ende_element_seq_idx + 1)) {
-        boost::nowide::cerr << "Kein freies Element gefunden, um die Fahrstraßen \"" << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander zu verriegeln" << std::endl;
+      if (idx_norm > seq_fahrstr_norm.ende_element_seq_idx) {
+        const auto& el1 = element_seq.elemente().at(seq_fahrstr_norm.min_register_element_seq_idx);
+        const auto& modul1 = modul_info.at(el1.st3);
+        const auto& el2 = element_seq.elemente().at(seq_fahrstr_norm.ende_element_seq_idx);
+        const auto& modul2 = modul_info.at(el2.st3);
+        boost::nowide::cerr << "Kein Element ohne bestehendes oder neues Register zwischen "
+           << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << " und "
+           << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (el2.normrichtung ? "blau" : "grün") << "gefunden, um die Fahrstraßen \""
+           << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander zu verriegeln.\n";
+        return 1;
+      }
+      if (idx_gegen_plus_1 < seq_fahrstr_gegen.ende_element_seq_idx + 1) {
+        const auto& el1 = element_seq.elemente().at(seq_fahrstr_gegen.min_register_element_seq_idx);
+        const auto& modul1 = modul_info.at(el1.st3);
+        const auto& el2 = element_seq.elemente().at(seq_fahrstr_gegen.ende_element_seq_idx);
+        const auto& modul2 = modul_info.at(el2.st3);
+        boost::nowide::cerr << "Kein Element ohne bestehendes oder neues Register zwischen "
+           << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << " und "
+           << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (el2.normrichtung ? "blau" : "grün") << "gefunden, um die Fahrstraßen \""
+           << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander zu verriegeln\n";
         return 1;
       }
 
