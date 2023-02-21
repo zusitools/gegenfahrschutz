@@ -869,7 +869,7 @@ int main(int argc, char** argv) {
     std::string out_string;
     rapidxml::print(std::back_inserter(out_string), doc, rapidxml::print_no_indenting);
     {
-      std::ofstream o(dateiname, std::ios::binary);
+      boost::nowide::ofstream o(dateiname, std::ios::binary);
       o << out_string;
     }
 

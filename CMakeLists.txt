@@ -59,11 +59,10 @@ generate_zusi_parser(zusi_parser ${CMAKE_CURRENT_BINARY_DIR}/zusi_parser
     ReferenzElement::StrNorm
   IGNORE_UNKNOWN)
 
-find_package(Boost COMPONENTS filesystem program_options REQUIRED)
+find_package(Boost COMPONENTS filesystem program_options nowide REQUIRED)
 
-add_executable(gegenfahrschutz gegenfahrschutz.cpp nowide/src/iostream.cpp)
-target_include_directories(gegenfahrschutz PRIVATE nowide/include)
-target_link_libraries(gegenfahrschutz PRIVATE zusi_parser Boost::filesystem Boost::program_options)
+add_executable(gegenfahrschutz gegenfahrschutz.cpp)
+target_link_libraries(gegenfahrschutz PRIVATE zusi_parser Boost::filesystem Boost::program_options Boost::nowide)
 set_target_properties(gegenfahrschutz PROPERTIES OUTPUT_NAME "gegenfahrschutz-${PROJECT_VERSION}")
 
 install(TARGETS gegenfahrschutz RUNTIME DESTINATION bin)

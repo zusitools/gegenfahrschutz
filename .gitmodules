@@ -1,6 +1,3 @@
-[submodule "nowide"]
-	path = nowide
-	url = https://github.com/boostorg/nowide.git
 [submodule "parser"]
 	path = parser
 	url = https://github.com/zusitools/parser.git
