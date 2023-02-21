@@ -421,18 +421,19 @@ int main(int argc, char** argv) {
         }
       }();
       if (!next_element) {
-        break;
+        boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (kein Nachfolger)\n";
+        return false;
       }
       cur_element = next_element;
     }
     assert(cur_element);
-    boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (Zielelement nach nach " << max_num_elemente << " Schritten nicht erreicht)" << std::endl;
+    boost::nowide::cout << " - Fahrwegsuche in " << (start_normrichtung ? "Norm" : "Gegen") << "richtung abgebrochen an " << modul_info.at(cur_element.st3).pfad_kurz << ", Element " << cur_element.element->Nr << " (Zielelement nach " << max_num_elemente << " Schritten nicht erreicht)" << std::endl;
 
     return false;
   };
 
   if (!findeWegZuZiel(true) && !findeWegZuZiel(false)) {
-    boost::nowide::cerr << "Keinen Weg zwischen den angegebenen Streckenelementen gefunden, der nicht über eine Weiche führt" << std::endl;
+    boost::nowide::cerr << "Keinen Weg zwischen den angegebenen Streckenelementen gefunden, der an Weichen immer der Vorzugslage folgt.\n";
     return 1;
   }
 
@@ -590,7 +591,10 @@ int main(int argc, char** argv) {
   std::vector<bool> freie_elemente_laufrichtung(element_seq.elemente().size()), freie_elemente_gegenrichtung(element_seq.elemente().size());
   for (size_t i = 0; i < element_seq.elemente().size(); ++i) {
     const auto ist_frei = [](const std::optional<StreckenelementRichtungsInfo>& richtungsInfo) -> bool {
-      if ((!richtungsInfo) || (richtungsInfo->Reg != 0)) {
+      if (!richtungsInfo) {
+        return true;
+      }
+      if (richtungsInfo->Reg != 0) {
         return false;
       }
       for (const auto& ereignis : richtungsInfo->children_Ereignis) {
@@ -688,9 +692,10 @@ int main(int argc, char** argv) {
         const auto& modul1 = modul_info.at(el1.st3);
         const auto& el2 = element_seq.elemente().at(seq_fahrstr_norm.ende_element_seq_idx);
         const auto& modul2 = modul_info.at(el2.st3);
-        boost::nowide::cerr << "Kein Element ohne bestehendes oder neues Register zwischen "
+        boost::nowide::cerr << "Kein Element ohne bestehendes oder neues Register zwischen Index "
+           << seq_fahrstr_norm.min_register_element_seq_idx << " und " << seq_fahrstr_norm.ende_element_seq_idx << " - "
            << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << " und "
-           << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (el2.normrichtung ? "blau" : "grün") << "gefunden, um die Fahrstraßen \""
+           << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (el2.normrichtung ? "blau" : "grün") << " gefunden, um die Fahrstraßen \""
            << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander zu verriegeln.\n";
         return 1;
       }
@@ -699,9 +704,10 @@ int main(int argc, char** argv) {
         const auto& modul1 = modul_info.at(el1.st3);
         const auto& el2 = element_seq.elemente().at(seq_fahrstr_gegen.ende_element_seq_idx);
         const auto& modul2 = modul_info.at(el2.st3);
-        boost::nowide::cerr << "Kein Element ohne bestehendes oder neues Register zwischen "
+        boost::nowide::cerr << "Kein Element ohne bestehendes oder neues Register zwischen Index "
+           << seq_fahrstr_gegen.min_register_element_seq_idx << " und " << seq_fahrstr_gegen.ende_element_seq_idx << " - "
            << modul1.pfad_kurz << ", Element " << el1.element->Nr << " " << (el1.normrichtung ? "blau" : "grün") << " und "
-           << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (el2.normrichtung ? "blau" : "grün") << "gefunden, um die Fahrstraßen \""
+           << modul2.pfad_kurz << ", Element " << el2.element->Nr << " " << (el2.normrichtung ? "blau" : "grün") << " gefunden, um die Fahrstraßen \""
            << seq_fahrstr_norm.fahrstrasse->FahrstrName << "\" und \"" << seq_fahrstr_gegen.fahrstrasse->FahrstrName << "\" gegeneinander zu verriegeln\n";
         return 1;
       }
